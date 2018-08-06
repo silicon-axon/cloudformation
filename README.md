@@ -1,6 +1,6 @@
 # cloudformation
 
-This is a collection of CloudFormation examples, wrapped around Python Jinja2 templating.
+This is a collection of CloudFormation templates, wrapped around Python Jinja2 templating.
 
 ## Introduction
 
@@ -21,6 +21,6 @@ Fill in your own variables. Example variables can be found in `example.yaml`, th
 
     jinja2 stacks/vpc.yaml example.yaml
 
-The `stacks/` folder contains various CloudFormation stack templates.
+The `stacks/` folder contains CloudFormation stack templates.
 They serve as examples of how to provision various AWS resources.
 Your usage and needs may vary, but we hope they can help you in organizing your resources better.
