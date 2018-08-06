@@ -1,0 +1,31 @@
+region: "us-east-2"
+vpc:
+  name: "ExampleVPC"
+  cidr: "10.0.0.0/16"
+  subnets:
+    - name: Public Subnet A
+      resource_name: PublicSubnetA
+      availability_zone: us-east-2a
+      cidr: "10.0.0.0/20"
+      public: true
+    - name: Private Subnet A
+      resource_name: PrivateSubnetA
+      availability_zone: us-east-2a
+      cidr: "10.0.16.0/20"
+      public: false
+    - name: Public Subnet B
+      resource_name: PublicSubnetB
+      availability_zone: us-east-2b
+      cidr: "10.0.32.0/20"
+      public: true
+    - name: Private Subnet B
+      resource_name: PrivateSubnetB
+      availability_zone: us-east-2b
+      cidr: "10.0.48.0/20"
+      public: false
+  public_route_table:
+    name: Public Subnets Route Table
+  private_route_table:
+    name: Private Subnets Route Table
+  nat_gateway:
+    subnet: PublicSubnetA

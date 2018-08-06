@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources: 
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: "{{ vpc.cidr }}"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags: 
+       - Key: Name
+         Value: "{{ vpc.name }}"
+
+  # Subnets
+{%- for subnet in vpc.subnets %}
+  {{ subnet.resource_name }}: 
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: "{{ subnet.availability_zone }}"
+      VpcId: !Ref VPC
+      CidrBlock: "{{ subnet.cidr }}"
+      MapPublicIpOnLaunch: {{ subnet.public }}
+      Tags:
+        - Key: Name
+          Value: "{{ subnet.name }}"
+{%- endfor %}
+
+  # Public Subnet Gateway using Internet Gateway
+  InternetGateway: 
+    Type: "AWS::EC2::InternetGateway"
+  VPCGatewayAttachment: 
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicRouteTable: 
+    Type: "AWS::EC2::RouteTable"
+    Properties: 
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: "{{ vpc.public_route_table.name }}"
+  PublicInternetRoute: 
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  # Private Subnet Gateway using NAT
+  NatGatewayElasticIP:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  NatGateway:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt NatGatewayElasticIP.AllocationId
+      SubnetId: !Ref {{ vpc.nat_gateway.subnet }}
+  PrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: "{{ vpc.private_route_table.name }}"
+  PrivateInternetRoute:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Subnet RouteTables Associations
+{%- for subnet in vpc.subnets %}
+  {%- if subnet.public %}
+  {{ subnet.resource_name }}Association:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref {{ subnet.resource_name }}
+  {%- else %}
+  {{ subnet.resource_name }}Association:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref {{ subnet.resource_name }}
+  {%- endif %}
+{%- endfor %}
+
+  # Security Groups
+  PrivateSSHSecurityGroup: 
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      GroupName: "Private SSH"
+      GroupDescription: "SSH from within VPC"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: 
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "{{ vpc.cidr }}"
+  PrivateHTTPSecurityGroup: 
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      GroupName: "Private HTTPS"
+      GroupDescription: "Private HTTP/S Traffic from within VPC"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: 
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: "{{ vpc.cidr }}"
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: "{{ vpc.cidr }}"
+  PublicHTTPSecurityGroup: 
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      GroupName: "Public HTTPS"
+      GroupDescription: "Public HTTP/S Access"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: 
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: "0.0.0.0/0"
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: "0.0.0.0/0"
+
+Outputs:
+  VpcId:
+    Description: VPC Id
+    Value: !Ref VPC
+  PublicSubnetIds:
+    Description: List of Public Subnet Ids
+    Value: !Join
+      - ','
+      - {%- for subnet in vpc.subnets %}
+        {%- if subnet.public %}
+        - !Ref {{ subnet.resource_name }}
+        {%- endif %}
+      {%- endfor %}
+  PrivateSubnetIds:
+    Description: List of Private Subnet Ids
+    Value: !Join
+      - ','
+      - {%- for subnet in vpc.subnets %}
+        {%- if not subnet.public %}
+        - !Ref {{ subnet.resource_name }}
+        {%- endif %}
+      {%- endfor %}
+  PrivateHTTPSecurityGroupId:
+    Description: Security Group Id for Private HTTP/S
+    Value: !Ref PrivateHTTPSecurityGroup
+  PublicHTTPSecurityGroupId:
+    Description: Security Group Id for Public HTTP/S
+    Value: !Ref PublicHTTPSecurityGroup
+  PrivateSSHSecurityGroupId:
+    Description: Security Group Id for SSH access from within VPC
+    Value: !Ref PrivateSSHSecurityGroup
