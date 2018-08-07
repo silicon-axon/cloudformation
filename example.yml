@@ -5,26 +5,26 @@ vpc:
   name: "ExampleVPC"
   cidr: "10.0.0.0/16"
   subnets:
-    - name: Public Subnet A
-      resource_name: PublicSubnetA
-      availability_zone: us-east-2a
+    - availability_zone: us-east-2a
       cidr: "10.0.0.0/20"
+      name: Public Subnet A
       public: true
-    - name: Private Subnet A
-      resource_name: PrivateSubnetA
-      availability_zone: us-east-2a
+      resource_name: PublicSubnetA
+    - availability_zone: us-east-2a
       cidr: "10.0.16.0/20"
+      name: Private Subnet A
       public: false
-    - name: Public Subnet B
-      resource_name: PublicSubnetB
-      availability_zone: us-east-2b
+      resource_name: PrivateSubnetA
+    - availability_zone: us-east-2b
       cidr: "10.0.32.0/20"
+      name: Public Subnet B
       public: true
-    - name: Private Subnet B
-      resource_name: PrivateSubnetB
-      availability_zone: us-east-2b
+      resource_name: PublicSubnetB
+    - availability_zone: us-east-2b
       cidr: "10.0.48.0/20"
+      name: Private Subnet B
       public: false
+      resource_name: PrivateSubnetB
   public_route_table:
     name: Public Subnets Route Table
   private_route_table:
