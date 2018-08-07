@@ -19,8 +19,8 @@ Install [jinja2-cli](https://github.com/mattrobenolt/jinja2-cli)
 
 Fill in your own variables into a yaml file. Example variables can be found in `example.yaml`, then pass it to `jinja2`
 
-    jinja2 stacks/vpc.yaml example.yaml
+    jinja2 vpc/stack.yaml vpc/vars.yaml
 
-The `stacks/` folder contains CloudFormation stack templates.
-They serve as examples of how to provision various AWS resources.
-Your usage and needs may vary, but we hope they can help you in organizing your resources better.
+Each folder contains a CloudFormation stack template and its variables.
+They serve as examples of how to provision various AWS resources, and are not necessarily related to each other.
+Your usage and needs may vary, but we hope these can help you in provisioning your resources.

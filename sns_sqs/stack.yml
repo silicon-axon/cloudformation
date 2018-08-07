@@ -1,3 +1,5 @@
+# Demonstrate the use of multiple SQS queues listening to multiple SNS topics
+
 AWSTemplateFormatVersion: "2010-09-09"
 Resources: 
   {%- for q in sns_sqs.queues %}
