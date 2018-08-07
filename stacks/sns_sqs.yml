@@ -23,3 +23,15 @@ Resources:
           Protocol: {{ s.protocol }}
         {%- endfor %}
   {%- endfor %}
+
+Outputs:
+  {%- for t in sns_sqs.topics %}
+  {{ t.resource_name }}Arn:
+    Description: "SNS Topic {{ t.display_name }} Arn"
+    Value: !Ref {{ t.resource_name }}
+  {%- endfor %}
+  {%- for q in sns_sqs.queues %}
+  {{ q.resource_name }}Arn:
+    Description: "SQS {{ q.queue_name }} Arn"
+    Value: !GetAtt [ {{ q.resource_name }}, "Arn" ]
+  {%- endfor %}
