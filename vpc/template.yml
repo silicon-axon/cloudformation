@@ -11,21 +11,7 @@ Resources:
        - Key: Name
          Value: "{{ vpc.name }}"
 
-  # Subnets
-{%- for subnet in vpc.subnets %}
-  {{ subnet.resource_name }}: 
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      AvailabilityZone: "{{ subnet.availability_zone }}"
-      VpcId: !Ref VPC
-      CidrBlock: "{{ subnet.cidr }}"
-      MapPublicIpOnLaunch: {{ subnet.public }}
-      Tags:
-        - Key: Name
-          Value: "{{ subnet.name }}"
-{%- endfor %}
-
-  # Public Subnet Gateway using Internet Gateway
+  # Create Internet Gateway for all public subnets in this VPC
   InternetGateway: 
     Type: "AWS::EC2::InternetGateway"
   VPCGatewayAttachment: 
@@ -33,9 +19,9 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-  PublicRouteTable: 
+  PublicRouteTable:
     Type: "AWS::EC2::RouteTable"
-    Properties: 
+    Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
@@ -47,32 +33,47 @@ Resources:
       GatewayId: !Ref InternetGateway
       RouteTableId: !Ref PublicRouteTable
 
-  # Private Subnet Gateway using NAT
-  NatGatewayElasticIP:
+{%- for az in vpc.availability_zones %}
+
+  # ----- {{ az.resource_name }} -----
+
+  # Create a NAT Gateway
+  {{ az.resource_name}}NatGatewayElasticIP:
     Type: "AWS::EC2::EIP"
     Properties:
       Domain: vpc
-  NatGateway:
+  {{ az.resource_name}}NatGateway:
     Type: "AWS::EC2::NatGateway"
     Properties:
-      AllocationId: !GetAtt NatGatewayElasticIP.AllocationId
-      SubnetId: !Ref {{ vpc.nat_gateway.subnet }}
-  PrivateRouteTable:
+      AllocationId: !GetAtt {{ az.resource_name}}NatGatewayElasticIP.AllocationId
+      SubnetId: !Ref {{ az.nat_gateway.subnet }}
+  {{ az.resource_name}}PrivateRouteTable:
     Type: "AWS::EC2::RouteTable"
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: "{{ vpc.private_route_table.name }}"
-  PrivateInternetRoute:
+          Value: "{{ az.private_route_table.name }}"
+  {{ az.resource_name}}PrivateInternetRoute:
     Type: "AWS::EC2::Route"
     Properties: 
       DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NatGateway
-      RouteTableId: !Ref PrivateRouteTable
+      NatGatewayId: !Ref {{ az.resource_name}}NatGateway
+      RouteTableId: !Ref {{ az.resource_name}}PrivateRouteTable
 
-  # Subnet RouteTables Associations
-{%- for subnet in vpc.subnets %}
+  # Subnets
+{%- for subnet in az.subnets %}
+  {{ subnet.resource_name }}:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: "{{ az.name }}"
+      VpcId: !Ref vpc
+      CidrBlock: "{{ subnet.cidr }}"
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: name
+          Value: "{{ subnet.name }}"
+
   {%- if subnet.public %}
   {{ subnet.resource_name }}Association:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
@@ -83,12 +84,15 @@ Resources:
   {{ subnet.resource_name }}Association:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref {{ az.resource_name}}PrivateRouteTable
       SubnetId: !Ref {{ subnet.resource_name }}
   {%- endif %}
 {%- endfor %}
 
-  # Security Groups
+{%- endfor %}
+
+
+  # Some default security groups to allow SSH and HTTP/S access
   PrivateSSHSecurityGroup: 
     Type: "AWS::EC2::SecurityGroup"
     Properties: 
