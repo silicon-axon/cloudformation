@@ -143,20 +143,24 @@ Outputs:
     Description: List of Public Subnet Ids
     Value: !Join
       - ','
-      - {%- for subnet in vpc.subnets %}
+      - {%- for az in vpc.availability_zones %}
+        {%- for subnet in az.subnets %}
         {%- if subnet.public %}
         - !Ref {{ subnet.resource_name }}
         {%- endif %}
-      {%- endfor %}
+        {%- endfor %}
+        {%- endfor %}
   PrivateSubnetIds:
     Description: List of Private Subnet Ids
     Value: !Join
       - ','
-      - {%- for subnet in vpc.subnets %}
+      - {%- for az in vpc.availability_zones %}
+        {%- for subnet in az.subnets %}
         {%- if not subnet.public %}
         - !Ref {{ subnet.resource_name }}
         {%- endif %}
-      {%- endfor %}
+        {%- endfor %}
+        {%- endfor %}
   PrivateHTTPSecurityGroupId:
     Description: Security Group Id for Private HTTP/S
     Value: !Ref PrivateHTTPSecurityGroup
