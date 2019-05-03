@@ -6,9 +6,9 @@ Resources:
       CidrBlock: "{{ vpc.cidr }}"
       EnableDnsSupport: true
       EnableDnsHostnames: true
-      InstanceTenancy: default
+      InstanceTenancy: "default"
       Tags: 
-       - Key: Name
+       - Key: "Name"
          Value: "{{ vpc.name }}"
 
   # Create Internet Gateway for all public subnets in this VPC
@@ -24,7 +24,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       Tags:
-        - Key: Name
+        - Key: "Name"
           Value: "{{ vpc.public_route_table.name }}"
   PublicInternetRoute: 
     Type: "AWS::EC2::Route"
@@ -52,7 +52,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       Tags:
-        - Key: Name
+        - Key: "Name"
           Value: "{{ az.private_route_table.name }}"
   {{ az.resource_name}}PrivateInternetRoute:
     Type: "AWS::EC2::Route"
@@ -67,11 +67,11 @@ Resources:
     Type: "AWS::EC2::Subnet"
     Properties:
       AvailabilityZone: "{{ az.name }}"
-      VpcId: !Ref vpc
+      VpcId: !Ref VPC
       CidrBlock: "{{ subnet.cidr }}"
       MapPublicIpOnLaunch: false
       Tags:
-        - Key: name
+        - Key: "Name"
           Value: "{{ subnet.name }}"
 
   {%- if subnet.public %}
