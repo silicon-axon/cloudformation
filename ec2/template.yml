@@ -8,7 +8,7 @@ Resources:
       GroupDescription: "{{ loadbalancer.security_group.description }}"
       SecurityGroupIngress:
       {%- for in in loadbalancer.security_group.ingress %}
-      - IpProtocol: {{ in.protocl }}
+      - IpProtocol: {{ in.protocol }}
         FromPort: {{ in.from_port }}
         ToPort: {{ in.to_port }}
         CidrIp: {{ in.cidr }}
@@ -25,7 +25,7 @@ Resources:
       GroupDescription: "Access from LoadBalancer"
       SecurityGroupIngress:
       {%- for port in instances.ports %}
-      - IpProtocol: tcp
+      - IpProtocol: {{ instances.protocol }}
         FromPort: {{ port }}
         ToPort: {{ port }}
         SourceSecurityGroupId: !GetAtt SGLoadBalancer.GroupId
@@ -35,7 +35,7 @@ Resources:
 {%- set j = loop.index0 %}
 {%- for x in range(0, instances.count) %}
 
-  Instance{{ j * instances.count + x }}:
+  Instance{{ j*instances.count + x }}:
     Type: "AWS::EC2::Instance"
     Properties:
       InstanceType: "{{ instances.type }}"
@@ -53,8 +53,12 @@ Resources:
 
 
 Outputs:
+{%- for subnet in subnets %}
+{%- set j = loop.index0 %}
 {%- for x in range(0, instances.count) %}
-  Instance{{ x }}:
-    Description: Instance #{{ x }}
-    Value: !Ref Instance{{ x }}
+  {%- set iid = j*instances.count + x %}
+  Instance{{ iid }}:
+    Description: "Instance #{{ iid }}"
+    Value: !Ref Instance{{ iid }}
+{%- endfor %}
 {%- endfor %}
