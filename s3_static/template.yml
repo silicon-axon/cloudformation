@@ -1,0 +1,27 @@
+# Create a static website hosted on S3 with https using Cloudfront and AWS SSL Cert
+
+AWSTemplateFormatVersion: "2010-09-09"
+Resources: 
+  MainBucket: 
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: "PublicRead"
+      BucketName: "{{ s3_static.host }}"
+      LoggingConfiguration: 
+        DestinationBucketName: "logs.{{ s3_static.host }}"
+      WebsiteConfiguration:
+        ErrorDocument: "{{ s3_static.error_document }}"
+        IndexDocument: "{{ s3_static.index_document }}"
+
+  LogBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "logs.{{ s3_static.host }}"
+
+  WWWBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "www.{{ s3_static.host }}"
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: "{{ s3_static.host }}"
