@@ -1,27 +1,45 @@
 # Create a static website hosted on S3 with https using Cloudfront and AWS SSL Cert
 
 AWSTemplateFormatVersion: "2010-09-09"
-Resources: 
-  MainBucket: 
+Resources:
+  MainBucket:
     Type: "AWS::S3::Bucket"
     Properties:
       AccessControl: "PublicRead"
-      BucketName: "{{ s3_static.host }}"
-      LoggingConfiguration: 
-        DestinationBucketName: "logs.{{ s3_static.host }}"
+      BucketName: "{{ host }}"
+      LoggingConfiguration:
+        DestinationBucketName: "logs.{{ host }}"
       WebsiteConfiguration:
-        ErrorDocument: "{{ s3_static.error_document }}"
-        IndexDocument: "{{ s3_static.index_document }}"
+        ErrorDocument: "{{ error_document }}"
+        IndexDocument: "{{ index_document }}"
 
   LogBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: "logs.{{ s3_static.host }}"
+      BucketName: "logs.{{ host }}"
 
   WWWBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: "www.{{ s3_static.host }}"
+      BucketName: "www.{{ host }}"
       WebsiteConfiguration:
         RedirectAllRequestsTo:
-          HostName: "{{ s3_static.host }}"
+          HostName: "{{ host }}"
+
+  MainBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: "{{ host }}"
+      PolicyDocument: |
+        {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Sid": "AddPerm",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::{{ host }}/*"
+            }
+          ]
+       }
