@@ -12,11 +12,17 @@ Resources:
       WebsiteConfiguration:
         ErrorDocument: "{{ error_document }}"
         IndexDocument: "{{ index_document }}"
+      Tags:
+        - Key: "Domain"
+          Value: "{{ host }}"
 
   LogBucket:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: "logs.{{ host }}"
+      Tags:
+        - Key: "Domain"
+          Value: "{{ host }}"
 
   WWWBucket:
     Type: "AWS::S3::Bucket"
@@ -25,6 +31,9 @@ Resources:
       WebsiteConfiguration:
         RedirectAllRequestsTo:
           HostName: "{{ host }}"
+      Tags:
+        - Key: "Domain"
+          Value: "{{ host }}"
 
   MainBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
@@ -43,3 +52,15 @@ Resources:
             }
           ]
        }
+      Tags:
+        - Key: "Domain"
+          Value: "{{ host }}"
+
+  CloudFront:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Enabled: true
+      Tags:
+        - Key: "Domain"
+          Value: "{{ host }}"
