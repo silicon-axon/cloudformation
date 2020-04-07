@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Resources:
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
+  LambdaRole:
+    Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -29,7 +29,7 @@ Resources:
     Properties:
       Description: "Basic CloudWatch Event triggering lambda"
       Name: "MyEvent"
-      ScheduleExpression: "cron(0/5 * * * ? *)"
+      ScheduleExpression: "rate(5 minutes)"
       State: "ENABLED"
       Targets:
         - Arn: !GetAtt Lambda.Arn
@@ -41,6 +41,7 @@ Resources:
       ActionsEnabled: false
       AlarmName: "MyAlarm"
       ComparisonOperator: "LessThanOrEqualToThreshold"
+      DatapointsToAlarm: 3
       EvaluationPeriods: 3
       MetricName: "MyMetric"
       Namespace: "MyNamespace"
@@ -78,8 +79,16 @@ Resources:
       FunctionName: "MyLambda"
       Handler: "index.handler"
       MemorySize: 128
-      Role: !GetAtt LambdaExecutionRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Timeout: 30
+
+  LambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt Lambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt Cron.Arn
 
 Outputs:
   Lambda:
