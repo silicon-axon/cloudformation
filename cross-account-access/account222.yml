@@ -37,10 +37,6 @@ Resources:
           import os
           import json
 
-          cw = boto3.client('cloudwatch')
-          dynamodb = boto3.client('dynamodb')
-          region = os.environ['AWS_REGION']
-
           def assume_role(role_arn):
             sts = boto3.client('sts')
             role = sts.assume_role(RoleArn=role, RoleSessionName='assume-role')
