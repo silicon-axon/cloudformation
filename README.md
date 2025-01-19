@@ -1,6 +1,6 @@
 # cloudformation
 
-This is a collection of CloudFormation templates, wrapped around Python Jinja2 templating.
+This is a collection of sample CloudFormation templates, some of which are wrapped around Python Jinja2 templating.
 
 ## Introduction
 
