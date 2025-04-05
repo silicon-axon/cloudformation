@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+
+Mappings:
+  Configs:
+    ECS:
+      ServiceName: "ecs-service-example"
+      ClusterName: "ecs-cluster-example"
+      ImageId: "public.ecr.aws/nginx/nging:stable"
+      InstanceType: "t2.micro"
+      VpcCidr: "10.0.0.0/16"
+      SubnetCidr: "10.0.0.0/20"
+      DesiredTaskCount: 4
+      SubnetAvailabilityZone: "us-east-1a"
+    Tags:
+      Company: "Silicon Axon"
+
+
+Resources:
+  Cluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: !FindInMap [Configs, ECS, ClusterName]
+      ClusterSettings:
+        - Name: "containerInsights"
+          Value: "enabled"
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  LogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !FindInMap [Configs, ECS, ClusterName]
+      RetentionInDays: 7
+
+  ExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam:aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+
+  TaskDefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      Family: !FindInMap [Configs, ECS, ClusterName]
+      Cpu: "512"
+      Memory: "1024"
+      NetworkMode: "awsvpc"
+      ExecutionRoleArn: !Ref ExecutionRole
+      ContainerDefinitions:
+        - Name: "sample-app"
+          Image: !FindInMap [Configs, ECS, ImageId]
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: "ecs-example"
+          PortMappings:
+            - ContainerPort: 80
+      RequiresCompatibilities:
+        - "FARGATE"
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  Service:
+    Type: "AWS::ECS::Service"
+    Properties:
+      Cluster: !Ref Cluster
+      DesiredCount: !FindInMap [Configs, ECS, DesiredTaskCount]
+      LaunchType: "FARGATE"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: "ENABLED"
+          Subnets:
+            - !Ref Subnet
+          SecurityGroups:
+            - !GetAtt SGPrivateHttp.GroupId
+      PropagateTags: "SERVICE"
+      ServiceName: !FindInMap [Configs, ECS, ServiceName]
+      TaskDefintion: !Ref TaskDefinition
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !FindInMap [Configs, ECS, VpcCidr]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: "default"
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  VPCGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  SubnetRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  InternetRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref SubnetRouteTable
+
+  Subnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !FindInMap [Configs, ECS, SubnetAvailabilityZone]
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [Configs, ECS, SubnetCidr]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]
+
+  SubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref SubnetRouteTable
+      SubnetId: !Ref Subnet
+
+  SGPrivateHttp:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: "Private HTTP"
+      GroupDescription: "Private HTTP within VPC"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !FindInMap [Configs, ECS, VpcCidr]
+      Tags:
+        - Name: "Company"
+          Value: !FindInMap [Configs, Tags, Company]

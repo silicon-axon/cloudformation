@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Serverless functions with API Gateway"
+Transform: "AWS::Serverless-2016-10-31"
+
+Resources:
+  ApiGateway:
+    Type: "AWS::Serverless::Api"
+    Properties:
+      OpenApiVersion: "2.0"
+      CacheClusterEnabled: true
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          CachingEnabled: true
+          LoggingLevel: "ERROR"
+      StageName: "dev"
+      Auth:
+        ApiKeyRequired: false
+
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+        Path: "/"
+        Policies:
+          - PolicyName: !Sub "${AWS::StackName}-LambdaPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource: !Ref LambdaLogGroup
+
+  LambdaFunction:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Code:
+        ZipFile: |
+          import boto3
+
+          def handler(event, context):
+            print(event)
+
+      Description: "GET /sample."
+      Events:
+        Get:
+          Type: "Api"
+          Properties:
+            Path: "/sample"
+            Method: "GET"
+            RestApiId: !Ref ApiGateway
+            Auth:
+              ApiKeyRequired: false
+        Options:
+          Type: "Api"
+          Properties:
+            Path: "/sample"
+            Method: "OPTIONS"
+            RestApiId: !Ref ApiGateway
+            Auth:
+              ApiKeyRequired: false
+      Handler: "index.handler"
+      LoggingConfig:
+        LogGroup: !Ref LambdaLogGroup
+      MemorySize: 128
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "python3.8"
+      Timeout: 30
+
+  LambdaLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: !Sub "/mylambda"
